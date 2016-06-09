@@ -28,14 +28,17 @@ def random_crop(img, window_size):
 
     return crop_img(img, x, y, window_size)
 
-def make_patches(img, n_patches, window_size, downsize_size):
+def make_patches(img, n_patches=config.PATCHES_PER_IMG,
+    window_size=config.WINDOW_SIZE, downsize_size=config.DOWNSIZE_SIZE):
     """
-    Make n_patches random patches from a greyscale-converted image,
-    which are squares of window_size pixels wide and tall.
+    Make n_patches random patches from an image, patches
+    are squares of (window_size x window_size) pixels.
 
     A lossy version is created by scaling the image down to a
     downsize_size pixel square then interpolate it back up to the
     original window size.
+
+    img : an image matrix (eg from cv2.imread)
 
     Yields two patches: clean_crop, lossy_crop
     """
@@ -51,12 +54,15 @@ def make_patches(img, n_patches, window_size, downsize_size):
         lossy_crop = cv2.resize(lossy_crop, windowsize_tuple, interpolation=cv2.INTER_LINEAR)
         yield clean_crop, lossy_crop
 
-def prev_filenumber(directory_names=[config.CLEAN_DIR, config.LOSSY_DIR]):
+def prev_filenumber(directory_names):
     """
     Get the highest filenumber in either folder
-    or return False if no files are found
+    or return False if no files are found.
+
+    42.jpg -> 42
+    42_3.jpg -> 42 (_3 is the patch number)
     """
-    all_filenumbers = [int(filename.split('.')[0])
+    all_filenumbers = [int(filename.split('.')[0].split('_')[0])
          for directory_name in directory_names
          for filename in os.listdir(directory_name)
         ]
@@ -65,14 +71,26 @@ def prev_filenumber(directory_names=[config.CLEAN_DIR, config.LOSSY_DIR]):
     else:
         return False
 
-def save_patches(*args, **kwargs):
-    """Generate patches from a single image and save to disk"""
-    prev_no = prev_filenumber()
+def save_patches():
+    """Generate patches from all images in FULL_DIR and save."""
+    prev_no = prev_filenumber([config.CLEAN_DIR, config.LOSSY_DIR])
     initial_no = prev_no or -1
-    for idx, (clean, lossy) in enumerate(make_patches(*args, **kwargs)):
-        fileno = idx + initial_no + 1
-        cv2.imwrite(os.path.join(config.CLEAN_DIR, str(fileno) + config.FILE_EXT), clean)
-        cv2.imwrite(os.path.join(config.LOSSY_DIR, str(fileno) + config.FILE_EXT), lossy)
+
+    full_img_paths = os.listdir(config.FULL_DIR)
+    # assume images start with 0
+
+    print 'generating patches, starting from #%i (-1 means from scratch)' % (initial_no)
+    for img_path in full_img_paths:
+        img_no = int(img_path.split('.')[0])
+        if img_no > initial_no:
+            img = cv2.imread(os.path.join(config.FULL_DIR, img_path))
+            for idx, (clean, lossy) in enumerate(make_patches(img)):
+                patch_no = idx
+                identifier = '%i_%i' % (img_no, patch_no)
+                cv2.imwrite(os.path.join(config.CLEAN_DIR, identifier + config.PATCH_FILE_EXT), clean)
+                cv2.imwrite(os.path.join(config.LOSSY_DIR, identifier + config.PATCH_FILE_EXT), lossy)
+        else:
+            print 'debug: skipped %i' % img_no
 
 def get_photo_url(photo_json):
     # https://www.flickr.com/services/api/misc.urls.html
@@ -81,12 +99,12 @@ def get_photo_url(photo_json):
 
     return url
 
-def create_opencv_image_from_url(url, cv2_img_flag=0):
-    #From http://stackoverflow.com/questions/13329445/how-to-read-image-from-in-memory-buffer-stringio-or-from-url-with-opencv-pytho
-    request = urlopen(url)
-    img_array = np.asarray(bytearray(request.read()), dtype=np.uint8)
-    # Throws TypeError if image is invalid or does not exist
-    return cv2.imdecode(img_array, cv2_img_flag)
+# def create_opencv_image_from_url(url, cv2_img_flag=0):
+#     #From http://stackoverflow.com/questions/13329445/how-to-read-image-from-in-memory-buffer-stringio-or-from-url-with-opencv-pytho
+#     request = urlopen(url)
+#     img_array = np.asarray(bytearray(request.read()), dtype=np.uint8)
+#     # Throws TypeError if image is invalid or does not exist
+#     return cv2.imdecode(img_array, cv2_img_flag)
 
 def all_img_urls(flickr_api, tags):
     """
@@ -103,8 +121,8 @@ def all_img_urls(flickr_api, tags):
         for photo in photos['photos']['photo']:
             yield get_photo_url(photo)
 
-def save_imgs_from_urls(urls, dest_dir, verbosity=False):
-    prev_no = prev_filenumber([dest_dir])
+def save_imgs_from_urls(urls, verbosity=config.VERBOSITY):
+    prev_no = prev_filenumber([config.FULL_DIR])
     if prev_no is not False:
         print 'existing files found, resuming after file #%i' % prev_no
         starting_no = prev_no
@@ -113,7 +131,7 @@ def save_imgs_from_urls(urls, dest_dir, verbosity=False):
 
     for idx, url in enumerate(urls):
         if idx > starting_no:
-            urllib.urlretrieve(url, os.path.join(dest_dir,"%i.jpg" % idx))
+            urllib.urlretrieve(url, os.path.join(config.FULL_DIR,"%i.jpg" % idx))
 
         if verbosity is not False and idx % verbosity == 0:
             print 'downloading... up to file #%i (started at %i)' % (idx, prev_no)
@@ -130,11 +148,11 @@ def save_urls_to_file(flickr_api, url_file, tags):
         for url in img_urls:
             f.write(url + '\n')
 
-def download_all_imgs(url_file, img_dir, verbosity=20):
+def download_all_imgs(url_file, verbosity=20):
     img_count = 0
     url_len = file_len(url_file)
     print '%i image urls in file' % url_len
     with open(url_file, 'r') as f:
         img_urls = (url for url in f)
-        save_imgs_from_urls(img_urls, img_dir, verbosity)
+        save_imgs_from_urls(img_urls, verbosity)
     print 'downloads complete.'

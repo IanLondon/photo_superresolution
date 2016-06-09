@@ -4,5 +4,10 @@
 *.png
 *.jpg
 *.txt
+
 secrets.py
+
 .ipynb_checkpoints
+lossy_patches
+clean_patches
+flickr_faces
