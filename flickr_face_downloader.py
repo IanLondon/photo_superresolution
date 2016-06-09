@@ -22,6 +22,6 @@ if __name__ == '__main__':
     else:
         if args.save_urls:
             print 'Getting all image urls with tags: [%s] and saving to %s' % (', '.join(args.tags), args.url_file)
-            save_urls_to_file(args.url_file, args.tags)
+            save_urls_to_file(flickr, args.url_file, args.tags)
         if args.download:
             download_all_imgs(args.url_file, args.img_dir)
