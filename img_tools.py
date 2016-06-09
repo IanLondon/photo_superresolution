@@ -54,7 +54,7 @@ def make_patches(img, n_patches, window_size, downsize_size):
 def prev_filenumber(directory_names=[config.CLEAN_DIR, config.LOSSY_DIR]):
     """
     Get the highest filenumber in either folder
-    or start at 0 if no files are found
+    or return False if no files are found
     """
     all_filenumbers = [int(filename.split('.')[0])
          for directory_name in directory_names
@@ -63,13 +63,14 @@ def prev_filenumber(directory_names=[config.CLEAN_DIR, config.LOSSY_DIR]):
     if all_filenumbers:
         return max(all_filenumbers)
     else:
-        return 0
+        return False
 
 def save_patches(*args, **kwargs):
     """Generate patches from a single image and save to disk"""
-    prev_no = prev_filenumber() + 1
+    prev_no = prev_filenumber()
+    initial_no = prev_no or -1
     for idx, (clean, lossy) in enumerate(make_patches(*args, **kwargs)):
-        fileno = idx + prev_no
+        fileno = idx + initial_no + 1
         cv2.imwrite(os.path.join(config.CLEAN_DIR, str(fileno) + config.FILE_EXT), clean)
         cv2.imwrite(os.path.join(config.LOSSY_DIR, str(fileno) + config.FILE_EXT), lossy)
 
@@ -104,12 +105,18 @@ def all_img_urls(flickr_api, tags):
 
 def save_imgs_from_urls(urls, dest_dir, verbosity=False):
     prev_no = prev_filenumber([dest_dir])
-    fileno = prev_no + 1
-    for url in urls:
-        urllib.urlretrieve(url, os.path.join(dest_dir,"%i.jpg" % fileno))
-        fileno += 1
-        if verbosity is not False and fileno % verbosity == 0:
-            print 'downloading... up to file #%i (started at %i)' % (fileno, prev_no+1)
+    if prev_no is not False:
+        print 'existing files found, resuming after file #%i' % prev_no
+        starting_no = prev_no
+    else:
+        starting_no = -1
+
+    for idx, url in enumerate(urls):
+        if idx > starting_no:
+            urllib.urlretrieve(url, os.path.join(dest_dir,"%i.jpg" % idx))
+
+        if verbosity is not False and idx % verbosity == 0:
+            print 'downloading... up to file #%i (started at %i)' % (idx, prev_no)
 
 def file_len(fname):
     with open(fname) as f:
