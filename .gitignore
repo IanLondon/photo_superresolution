@@ -1,0 +1,8 @@
+*.pyc
+*.h5
+*.json
+*.png
+*.jpg
+*.txt
+secrets.py
+.ipynb_checkpoints
