@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if not args.save_urls and not args.download:
+    if not args.save_urls and not args.download and not args.gen_patches:
         print 'No actions specified. Use --save_urls and/or --download to do something.'
     else:
         if args.save_urls:
@@ -26,4 +26,4 @@ if __name__ == '__main__':
         if args.download:
             download_all_imgs(args.url_file)
         if args.gen_patches:
-            save_patches
+            save_patches()
