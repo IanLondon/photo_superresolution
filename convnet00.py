@@ -11,9 +11,10 @@ from keras.layers.convolutional import Convolution2D
 model_name = 'convnet00'
 
 if persist.model_exists(model_name):
-    persist.load_model(model_name)
-
+    print 'found existing model for "%s", continuing training...' % model_name
+    model = persist.load_model(model_name)
 else:
+    print 'no persisted model found, starting from scratch.'
     channels = 1 # greyscale
     # each sub-image is a square, of WINDOW_SIZE x WINDOW_SIZE pixels.
     input_shape = (channels, config.WINDOW_SIZE, config.WINDOW_SIZE)
