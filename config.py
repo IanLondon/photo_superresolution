@@ -12,5 +12,5 @@ DOWNSIZE_SIZE = 11
 VERBOSITY = 10 #used when printing progress in downloader.py
 
 # Convolutional neural network parameters
-EPOCHS = 10
+EPOCHS = 100
 BATCH_SIZE = 32

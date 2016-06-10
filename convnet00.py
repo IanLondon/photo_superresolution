@@ -8,26 +8,34 @@ import load_data
 from keras.models import Sequential
 from keras.layers.convolutional import Convolution2D
 
-channels = 1 # greyscale
-# each sub-image is a square, of WINDOW_SIZE x WINDOW_SIZE pixels.
-input_shape = (channels, config.WINDOW_SIZE, config.WINDOW_SIZE)
+model_name = 'convnet00'
 
-model = Sequential()
-# 9x9 convolution with 64 filters to get patches representation
-model.add(Convolution2D(64, 9, 9, border_mode='same', activation='relu', input_shape=input_shape))
-# 1x1 convolution with 32 filters, add some nonlinearity
-model.add(Convolution2D(32, 1, 1, border_mode='same', activation='relu'))
-# 5x5 convolution with 1 filter for greyscale or 3 filters for RGB
-# for linear flattening, "averaging" the patches
-model.add(Convolution2D(channels, 5, 5, border_mode='same', activation='linear'))
+if persist.model_exists(model_name):
+    persist.load_model(model_name)
 
-model.compile(loss='mean_squared_error', optimizer='adadelta')
+else:
+    channels = 1 # greyscale
+    # each sub-image is a square, of WINDOW_SIZE x WINDOW_SIZE pixels.
+    input_shape = (channels, config.WINDOW_SIZE, config.WINDOW_SIZE)
 
+    model = Sequential()
+    # 9x9 convolution with 64 filters to get patches representation
+    model.add(Convolution2D(64, 9, 9, border_mode='same', activation='relu', input_shape=input_shape))
+    # 1x1 convolution with 32 filters, add some nonlinearity
+    model.add(Convolution2D(32, 1, 1, border_mode='same', activation='relu'))
+    # 5x5 convolution with 1 filter for greyscale or 3 filters for RGB
+    # for linear flattening, "averaging" the patches
+    model.add(Convolution2D(channels, 5, 5, border_mode='same', activation='linear'))
+
+    model.compile(loss='mean_squared_error', optimizer='adadelta')
+
+print 'loading images into memory (if this hangs, use a generator instead)'
 subimages_lossy, subimages_clean = load_data.get_subimages()
 
+print 'training model...'
 model.fit(subimages_lossy, subimages_clean, nb_epoch=config.EPOCHS, batch_size=config.BATCH_SIZE)
 
-persist.save_model(model, 'convnet00')
+persist.save_model(model, model_name)
 
 # input_img = Input(shape=(1, 28, 28))
 #
