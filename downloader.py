@@ -1,7 +1,7 @@
 import flickrapi
 
 import secrets
-from img_tools import save_urls_to_file, download_all_imgs, save_patches
+from img_tools import save_urls_to_file, download_all_imgs, save_patches, make_downsample_patches, make_sketch_patches
 
 # Declare flickr api object
 flickr = flickrapi.FlickrAPI(secrets.KEY, secrets.SECRET, format='parsed-json')
@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_urls', action='store_true', help='If included, save urls to url_file')
     parser.add_argument('--download', action='store_true', help='If included, download images using urls in url_file')
     parser.add_argument('--gen_patches', action='store_true', help='If included, generate patches for each image')
+    parser.add_argument('--sketchy', action='store_true', help='If included, generate the sketchified patches (if excluded, it\'s down-then-upsized.)')
 
     args = parser.parse_args()
 
@@ -26,4 +27,9 @@ if __name__ == '__main__':
         if args.download:
             download_all_imgs(args.url_file)
         if args.gen_patches:
-            save_patches()
+            if args.sketchy:
+                print 'sketchifying patches'
+                save_patches(make_patches_callback=make_sketch_patches)
+            else:
+                print 'downsampling patches'
+                save_patches(make_patches_callback=make_downsample_patches)

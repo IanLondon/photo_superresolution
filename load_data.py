@@ -19,7 +19,7 @@ def load_images(directory_name, filenames=None):
     return np.swapaxes(np.array(images), 3, 1)
 
 def write_images(directory_name, filenames, image_array):
-    print image_array.shape # (65, 1, 33, 33)
+    # print image_array.shape # (65, 1, 33, 33)
     for img, filename in zip(image_array, filenames):
         img = np.swapaxes(img, 0, 2)
         cv2.imwrite(os.path.join(directory_name, filename), img)

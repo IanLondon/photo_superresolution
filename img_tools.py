@@ -28,7 +28,7 @@ def random_crop(img, window_size):
 
     return crop_img(img, x, y, window_size)
 
-def make_patches(img, n_patches=config.PATCHES_PER_IMG,
+def make_downsample_patches(img, n_patches=config.PATCHES_PER_IMG,
     window_size=config.WINDOW_SIZE, downsize_size=config.DOWNSIZE_SIZE):
     """
     Make n_patches random patches from an image, patches
@@ -54,6 +54,30 @@ def make_patches(img, n_patches=config.PATCHES_PER_IMG,
         lossy_crop = cv2.resize(lossy_crop, windowsize_tuple, interpolation=cv2.INTER_LINEAR)
         yield clean_crop, lossy_crop
 
+def sketchify(img_rgb):
+    """Applies pencil sketch effect to an RGB image
+        Adapted from http://www.askaswiss.com/2016/01/how-to-create-pencil-sketch-opencv-python.html
+
+        :param img_rgb: RGB image to be processed
+        :returns: Processed grayscale image
+    """
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    img_blur = cv2.GaussianBlur(img_gray, (21, 21), 0, 0)
+    img_blend = cv2.divide(img_gray, img_blur, scale=256)
+
+    return img_blend
+
+def make_sketch_patches(img, n_patches=config.PATCHES_PER_IMG,
+    window_size=config.WINDOW_SIZE):
+    """
+    Make n_patches random patches from images,
+    but use sketchify filter instead of downsizing.
+    """
+    for _ in range(n_patches):
+        clean_crop = random_crop(img, window_size)
+        lossy_crop = sketchify(clean_crop)
+        yield clean_crop, lossy_crop
+
 def prev_filenumber(directory_names):
     """
     Get the highest filenumber in either folder
@@ -71,7 +95,7 @@ def prev_filenumber(directory_names):
     else:
         return False
 
-def save_patches():
+def save_patches(make_patches_callback=make_downsample_patches):
     """Generate patches from all images in FULL_DIR and save."""
     prev_no = prev_filenumber([config.CLEAN_DIR, config.LOSSY_DIR])
     initial_no = prev_no or -1
@@ -81,12 +105,16 @@ def save_patches():
 
     print 'generating patches, starting from #%i (-1 means from scratch)' % (initial_no)
     for img_path in full_img_paths:
-        img_no = int(img_path.split('.')[0])
-        if img_no > initial_no:
+        try:
+            img_no = int(img_path.split('.')[0])
+        except ValueError:
+            # non-number image name
+            img_no = img_path.split('.')[0]
+        if not isinstance(img_no, int) or img_no > initial_no:
             img = cv2.imread(os.path.join(config.FULL_DIR, img_path))
-            for idx, (clean, lossy) in enumerate(make_patches(img)):
+            for idx, (clean, lossy) in enumerate(make_patches_callback(img)):
                 patch_no = idx
-                identifier = '%i_%i' % (img_no, patch_no)
+                identifier = '%s_%i' % (img_no, patch_no)
                 cv2.imwrite(os.path.join(config.CLEAN_DIR, identifier + config.PATCH_FILE_EXT), clean)
                 cv2.imwrite(os.path.join(config.LOSSY_DIR, identifier + config.PATCH_FILE_EXT), lossy)
         else:
