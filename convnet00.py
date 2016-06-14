@@ -1,4 +1,3 @@
-# from load_data import TODO
 import persist
 import config
 import load_data
@@ -7,8 +6,13 @@ import load_data
 
 from keras.models import Sequential
 from keras.layers.convolutional import Convolution2D
+from keras.callbacks import ModelCheckpoint
 
-model_name = 'convnet00'
+model_name = config.MODEL_NAME
+
+print 'training model "%s"' % (model_name)
+print 'NOTE: If model was terminated early, you have to manually replace the weights'
+print '(looks at %s.h5 in current dir for weights to resume with)' % model_name
 
 if persist.model_exists(model_name):
     print 'found existing model for "%s", continuing training...' % model_name
@@ -34,46 +38,9 @@ print 'loading images into memory (if this hangs, use a generator instead)'
 subimages_lossy, subimages_clean = load_data.get_subimages()
 
 print 'training model...'
+temp_weights_path = os.path.join(config.TEMP_WEIGHTS_DIR, '%s_{epoch}.h5' % model_name)
+checkpointer = ModelCheckpoint(filepath=temp_weights_path, verbose=1)
 model.fit(subimages_lossy, subimages_clean, nb_epoch=config.EPOCHS, batch_size=config.BATCH_SIZE)
 
+# save the final weights
 persist.save_model(model, model_name)
-
-# input_img = Input(shape=(1, 28, 28))
-#
-# x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
-# x = MaxPooling2D((2, 2), border_mode='same')(x)
-# x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-# x = MaxPooling2D((2, 2), border_mode='same')(x)
-# x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-# encoded = MaxPooling2D((2, 2), border_mode='same')(x)
-#
-# # at this point the representation is (8, 4, 4) i.e. 128-dimensional
-#
-# x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
-# x = UpSampling2D((2, 2))(x)
-# x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-# x = UpSampling2D((2, 2))(x)
-# x = Convolution2D(16, 3, 3, activation='relu')(x)
-# x = UpSampling2D((2, 2))(x)
-# decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
-#
-# autoencoder = Model(input_img, decoded)
-# autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
-#
-# x_train, x_test = load_mnist(flatten=False)
-#
-# epochs = 10
-#
-# autoencoder.fit(x_train, x_train,
-#                 nb_epoch=epochs,
-#                 batch_size=128,
-#                 shuffle=True,
-#                 validation_data=(x_test, x_test))
-#
-# # encoded_imgs = encoder.predict(x_test)
-# decoded_imgs = autoencoder.predict(x_test)
-# # decoded_imgs = decoder.predict(encoded_imgs)
-#
-# persist.save_model(autoencoder, 'conv_autoencoder')
-#
-# show_mnist_results(decoded_imgs, x_test, 'convolutional')

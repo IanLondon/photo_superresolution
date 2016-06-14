@@ -3,7 +3,9 @@
 *.json
 *.png
 *.jpg
+*.jpeg
 *.txt
+*.tar.gz
 
 secrets.py
 
