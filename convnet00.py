@@ -1,3 +1,4 @@
+import os
 import persist
 import config
 import load_data
@@ -40,7 +41,9 @@ subimages_lossy, subimages_clean = load_data.get_subimages()
 print 'training model...'
 temp_weights_path = os.path.join(config.TEMP_WEIGHTS_DIR, '%s_{epoch}.h5' % model_name)
 checkpointer = ModelCheckpoint(filepath=temp_weights_path, verbose=1)
-model.fit(subimages_lossy, subimages_clean, nb_epoch=config.EPOCHS, batch_size=config.BATCH_SIZE)
+
+model.fit(subimages_lossy, subimages_clean, nb_epoch=config.EPOCHS,
+    batch_size=config.BATCH_SIZE, callbacks=[checkpointer])
 
 # save the final weights
 persist.save_model(model, model_name)

@@ -12,9 +12,9 @@ def model_exists(modelname):
 
 def load_model(modelname, compile_model=True):
     model = model_from_json(open('%s.json' % modelname).read())
-    model.load_weights('%s.h5' % modelname)
     print 'loaded "%s" json and 5h files' % modelname
     if compile_model:
         # model must be compiled before use
-        model.compile(optimizer='adagrad', loss='mse')
+        model.compile(optimizer='adadelta', loss='mse')
+    model.load_weights('%s.h5' % modelname)
     return model
