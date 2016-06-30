@@ -81,10 +81,11 @@ if __name__ == '__main__':
     parser.add_argument('--output', help='Name of output image file')
     parser.add_argument('--stride', default=config.WINDOW_SIZE, type=int)
     parser.add_argument('--upscale', default=3.0, type=float, help='For deblur mode, scales the image by this factor. Default is 3.0. Ignored in sketch mode.')
+    parser.add_argument('--model', default=None, help='Name of model to use.')
 
     args = parser.parse_args()
 
-    modelname = config.MODEL_NAME
+    modelname = args.model or config.MODEL_NAME
     print 'loading model "%s"' % modelname
     model = load_model(modelname)
     print 'using stride %i and window size %i' % (args.stride, config.WINDOW_SIZE)
